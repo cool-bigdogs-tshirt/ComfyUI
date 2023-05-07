@@ -317,6 +317,7 @@ class SD1Tokenizer:
                             tokens.append([(embed, weight)])
                         else:
                             tokens.append([(embed[x], weight) for x in range(embed.shape[0])])
+                    print(f'adding embed {embedding_name} weight {weight}')
                     #if we accidentally have leftover text, continue parsing using leftover, else move on to next word
                     if leftover != "":
                         word = leftover
@@ -339,10 +340,12 @@ class SD1Tokenizer:
                     #break word in two and add end token
                     if is_large:
                         batch.extend([(t,w,i+1) for t,w in t_group[:remaining_length]])
+                        print('breaking tokens into batch!!!')
                         batch.append((self.end_token, 1.0, 0))
                         t_group = t_group[remaining_length:]
                     #add end token and pad
                     else:
+                        print('breaking tokens into batch???')
                         batch.append((self.end_token, 1.0, 0))
                         batch.extend([(pad_token, 1.0, 0)] * (remaining_length))
                     #start new batch
