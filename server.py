@@ -8,6 +8,7 @@ import execution
 import uuid
 import json
 import glob
+from pathlib import Path
 try:
     import aiohttp
     from aiohttp import web
@@ -100,6 +101,48 @@ class PromptServer():
         @routes.get("/")
         async def get_root(request):
             return web.FileResponse(os.path.join(self.web_root, "index.html"))
+
+        @routes.post("/to-saved")
+        async def to_saved(request):
+            outputs = Path(folder_paths.get_output_directory())
+            paths = await request.json()
+            old_paths = []
+            new_paths = []
+            for path in paths:
+                filename = Path(path)
+                original = outputs / filename
+
+                new_filename = 'saved' / filename
+                new = outputs / new_filename
+                new.parent.mkdir(parents=True, exist_ok=True)
+
+                if new.exists():
+                    print(f'not moving to {new}, file exists')
+                else:
+                    original.rename(new)
+                    print(f'moving {original} to {new}')
+                    old_paths.append(str(filename))
+                    new_paths.append(str(new_filename))
+
+            return web.json_response({
+                'moved': [
+                    {
+                        'old_path': old,
+                        'new_path': new,
+                    }
+                    for (old, new)
+                    in zip(old_paths, new_paths)
+                ],
+            })
+
+        @routes.post("/save-graph")
+        async def save_graph(request):
+            upload_dir = folder_paths.get_output_directory()
+            filepath = os.path.join(upload_dir, "saved.json")
+
+            with open(filepath, "wb") as f:
+                f.write(await request.content.read())
+            return web.json_response({"path": filepath})
 
         @routes.get("/embeddings")
         def get_embeddings(self):

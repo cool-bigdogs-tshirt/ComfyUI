@@ -291,7 +291,7 @@ export class ComfyApp {
 			}
 		};
 
-		node.prototype.onDrawBackground = function (ctx) {
+		node.prototype.onDrawBackground = async function (ctx) {
 			if (!this.flags.collapsed) {
 				const output = app.nodeOutputs[this.id + ""];
 				if (output && output.images) {
@@ -341,6 +341,46 @@ export class ComfyApp {
 					let dw = this.size[0];
 					let dh = this.size[1];
 					dh -= shiftY;
+
+					const drawButton = (x, y, sz, text, disable=false) => {
+						const hovered = LiteGraph.isInsideRectangle(mouse[0], mouse[1], x + this.pos[0], y + this.pos[1], sz, sz);
+						let fill = disable ? "#030" : "#333";
+						let textFill = "#fff";
+						let isClicking = false;
+						if (hovered && !disable) {
+							canvas.canvas.style.cursor = "pointer";
+							if (canvas.pointer_is_down) {
+								fill = "#1e90ff";
+								isClicking = true;
+							} else {
+								fill = "#eee";
+								textFill = "#000";
+							}
+						} else {
+							this.pointerWasDown = null;
+						}
+
+						ctx.fillStyle = fill;
+						ctx.beginPath();
+						ctx.roundRect(x, y, sz, sz, [4]);
+						ctx.fill();
+						ctx.fillStyle = textFill;
+						ctx.font = "12px Arial";
+						ctx.textAlign = "center";
+						ctx.fillText(text, x + 15, y + 20);
+
+						return isClicking;
+					};
+
+					const scaleX = dw / w;
+					const scaleY = dh / h;
+					const scale = Math.min(scaleX, scaleY, 1);
+
+					w *= scale;
+					h *= scale;
+
+					let x = (dw - w) / 2;
+					let y = (dh - h) / 2 + shiftY;
 
 					if (imageIndex == null) {
 						let best = 0;
@@ -410,46 +450,7 @@ export class ComfyApp {
 						}
 					} else {
 						// Draw individual
-						const scaleX = dw / w;
-						const scaleY = dh / h;
-						const scale = Math.min(scaleX, scaleY, 1);
-
-						w *= scale;
-						h *= scale;
-
-						let x = (dw - w) / 2;
-						let y = (dh - h) / 2 + shiftY;
 						ctx.drawImage(this.imgs[imageIndex], x, y, w, h);
-
-						const drawButton = (x, y, sz, text) => {
-							const hovered = LiteGraph.isInsideRectangle(mouse[0], mouse[1], x + this.pos[0], y + this.pos[1], sz, sz);
-							let fill = "#333";
-							let textFill = "#fff";
-							let isClicking = false;
-							if (hovered) {
-								canvas.canvas.style.cursor = "pointer";
-								if (canvas.pointer_is_down) {
-									fill = "#1e90ff";
-									isClicking = true;
-								} else {
-									fill = "#eee";
-									textFill = "#000";
-								}
-							} else {
-								this.pointerWasDown = null;
-							}
-
-							ctx.fillStyle = fill;
-							ctx.beginPath();
-							ctx.roundRect(x, y, sz, sz, [4]);
-							ctx.fill();
-							ctx.fillStyle = textFill;
-							ctx.font = "12px Arial";
-							ctx.textAlign = "center";
-							ctx.fillText(text, x + 15, y + 20);
-
-							return isClicking;
-						};
 
 						if (numImages > 1) {
 							if (drawButton(x + w - 35, y + h - 35, 30, `${this.imageIndex + 1}/${numImages}`)) {
@@ -463,6 +464,28 @@ export class ComfyApp {
 								if (!this.pointerDown || !this.pointerDown.index === null) {
 									this.pointerDown = { index: null, pos: [...mouse] };
 								}
+							}
+						}
+					}
+
+					if (numImages > 0) {
+						let disable = this.imageIndex == null ?
+							this.images.every((image) => image.subfolder.startsWith('saved/')) :
+							this.images[this.imageIndex].subfolder.startsWith('saved/');
+						if (drawButton(x + 5, y + h - 35, 30, `save`, disable)) {
+							try {
+								let toSave = (this.images ?? []);
+								if (this.imageIndex !== null) {
+									toSave = [this.images[this.imageIndex]];
+								}
+								const paths = toSave.filter(({ subfolder }) => !subfolder.startsWith('saved/')).map(({ filename, subfolder }) => `${subfolder}/${filename}`)
+								console.log(paths);
+								const saved = await api.toSaved(paths);
+								for (let image of toSave) {
+									image.subfolder = `saved/${image.subfolder}`
+								}
+							} catch (err) {
+								console.log(err);
 							}
 						}
 					}

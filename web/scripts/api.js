@@ -150,6 +150,26 @@ class ComfyApi extends EventTarget {
 		return await resp.json();
 	}
 
+	async saveGraph(graph) {
+		const res = await fetch("/save-graph", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(graph, null, 2),
+		});
+
+		if (res.status !== 200) {
+			throw {
+				response: await res.text(),
+			};
+		}
+
+		const body = await res.json();
+
+		return body.path;
+	}
+
 	/**
 	 *
 	 * @param {number} number The index at which to queue the prompt, passing -1 will insert the prompt at the front of the queue
@@ -228,6 +248,21 @@ class ComfyApi extends EventTarget {
 		} catch (error) {
 			console.error(error);
 			return { History: [] };
+		}
+	}
+
+	async toSaved(paths) {
+		try {
+			const res = await fetch('/to-saved', {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(paths),
+			});
+			console.log(res);
+		} catch (error) {
+			console.error(error);
 		}
 	}
 
