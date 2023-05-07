@@ -126,6 +126,21 @@ class ComfyApi extends EventTarget {
 		return await resp.json();
 	}
 
+	async tokenize(input) {
+		const resp = await fetch("/tokenize", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(
+				{text: input},
+				null,
+				2,
+			),
+		});
+		return await resp.json();
+	}
+
 	/**
 	 * Loads node object definitions for the graph
 	 * @returns The node definitions

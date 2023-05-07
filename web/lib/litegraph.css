@@ -584,7 +584,7 @@
 }
 
 .graphdialog input,
-.graphdialog textarea,
+.graphdialog .content-editable,
 .graphdialog select {
     margin: 3px;
     min-width: 60px;
@@ -596,7 +596,8 @@
     outline: none;
 }
 
-.graphdialog textarea {
+.graphdialog .content-editable {
+    font-family: monospace;
 	min-height: 150px;
 }
 

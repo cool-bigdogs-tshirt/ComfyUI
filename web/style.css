@@ -32,6 +32,7 @@ body {
 }
 
 .comfy-multiline-input {
+    font-family: monospace;
 	background-color: var(--comfy-input-bg);
 	color: var(--input-text);
 	overflow: hidden;
@@ -277,7 +278,7 @@ button.comfy-queue-btn {
 	padding-right: 8px;
 }
 
-.graphdialog input, .graphdialog textarea, .graphdialog select {
+.graphdialog input, .graphdialog .content-editable, .graphdialog select {
 	background-color: var(--comfy-input-bg);
 	border: 2px solid;
 	border-color: var(--border-color);

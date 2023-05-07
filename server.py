@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+from comfy import sd1_clip
 import nodes
 import folder_paths
 import execution
@@ -204,6 +205,13 @@ class PromptServer():
             queue_info['queue_running'] = current_queue[0]
             queue_info['queue_pending'] = current_queue[1]
             return web.json_response(queue_info)
+
+        @routes.post("/tokenize")
+        async def tokenize(request):
+            json_data = await request.json()
+            # tokenizer = sd1_clip.SD1Tokenizer(embedding_directory=folder_paths.get_folder_paths("embeddings"))
+            resp = sd1_clip.token_weights(sd1_clip.escape_important(json_data['text']), 1.0)
+            return web.json_response({'weights': resp})
 
         @routes.post("/prompt")
         async def post_prompt(request):

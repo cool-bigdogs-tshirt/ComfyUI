@@ -1,3 +1,6 @@
+import { api } from "./api.js";
+import { interpolateViridis } from "https://cdn.skypack.dev/d3-scale-chromatic@3";
+
 function getNumberDefaults(inputData, defaultStep) {
 	let defaultVal = inputData[1]["default"];
 	let { min, max, step } = inputData[1];
@@ -114,14 +117,17 @@ function addMultilineWidget(node, name, opts, app) {
 		node.inputHeight = freeSpace;
 	}
 
+	console.log(node);
+
 	const widget = {
+		inputEl: document.createElement("div"),
 		type: "customtext",
 		name,
 		get value() {
-			return this.inputEl.value;
+			return this.inputEl.textContent;
 		},
 		set value(x) {
-			this.inputEl.value = x;
+			this.inputEl.textContent = x;
 		},
 		draw: function (ctx, _, widgetWidth, y, widgetHeight) {
 			if (!this.parent.inputHeight) {
@@ -146,8 +152,81 @@ function addMultilineWidget(node, name, opts, app) {
 			this.inputEl.hidden = !visible;
 		},
 	};
-	widget.inputEl = document.createElement("textarea");
-	widget.inputEl.className = "comfy-multiline-input";
+	widget.inputEl.className = "comfy-multiline-input content-editable";
+	widget.inputEl.contentEditable = "plaintext-only";
+	widget.inputEl.onblur = async (ev) => {
+		// if (node) {
+		// 	// pop the input into the api, get back tokens or error
+		// 	//  - to do this, we basically need to call prompt, which means we need the graph above our node
+		// 	let subgraph = node.subgraph();
+		// 	if (subgraph) {
+		// 		let p = await app.graphToPrompt(subgraph);
+		// 		console.log(p)
+		// 		let r = await api.queuePrompt(-1, p);
+		// 		console.log(r)
+		// 	}
+		// 	// map tokens back to input text somehow?
+		// 	// highlight
+		// }
+		let original = ev.target.textContent;
+		let resp = await api.tokenize(original);
+
+		console.log(resp);
+
+		let weights = resp.weights;
+		console.log(weights);
+
+		const max_weight = weights.reduce((m, [_, w]) => Math.max(m, w), 0);
+
+		const over_one = max_weight > 1.;
+
+		const over_one_mult = over_one ? 1./(max_weight-1) : 1.;
+		const under_one_mult = over_one ? 1. : 1./max_weight;
+
+		const adj_weights = weights.map(([text, w]) => {
+			if (over_one) {
+				if (w > 1.) {
+					w = ((w - 1) * over_one_mult) + 1;
+				}
+			} else {
+				w = w * under_one_mult;
+			}
+			w = w / 2.;
+			return [text, w]
+		});
+		console.log(adj_weights);
+
+		let html = "";
+		function pop(i) {
+			let popped = original.substring(0, i);
+			console.log(popped);
+			original = original.substring(i);
+			return popped
+		}
+
+		for (let [text, w] of adj_weights) {
+			let i = original.indexOf(text);
+			if (i === -1) {
+				return
+			}
+
+			if (i > 0) {
+				html += pop(i);
+			}
+
+			pop(text.length);
+
+			html += `<span style="color: ${interpolateViridis(w)}">${text}</span>`;
+		}
+
+		if (original.length > 0) {
+			html += original
+		}
+
+		console.log(html);
+
+		ev.target.innerHTML = html;
+	}
 	widget.inputEl.value = opts.defaultVal;
 	widget.inputEl.placeholder = opts.placeholder || "";
 	document.addEventListener("mousedown", function (event) {
