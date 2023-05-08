@@ -46,6 +46,8 @@ export class ComfyApp {
 		 * @type {boolean}
 		 */
 		this.shiftDown = false;
+
+		this.globalLinks = {};
 	}
 
 	/**
@@ -872,6 +874,9 @@ export class ComfyApp {
 		this.#addProcessMouseHandler();
 		this.#addProcessKeyHandler();
 
+		/**
+		 * @type { import("../types/litegraph.js").LGraph }
+		 */
 		this.graph = new LGraph();
 		const canvas = (this.canvas = new LGraphCanvas(canvasEl, this.graph));
 		this.ctx = canvasEl.getContext("2d");
